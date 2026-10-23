@@ -2083,14 +2083,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 <script>
 // Catálogo común para datos históricos, filtros y nuevas cargas.
 window.RadarCatalogo = (() => {
-  const categorias = ["Galletas", "Snacks", "Pastas", "Cuidado del hogar", "Aceites", "Salsas", "Harinas", "Cuidado personal"];
+  const categorias = ["Galletas", "Snacks", "Cuidado del hogar", "Abarrotes", "Cuidado personal"];
   const tipos = ["Lanzamiento de producto", "Campaña de comunicación", "Activación y experiencia", "Degustación", "Impulso", "Promoción de marca", "Concurso y sorteo", "Alianza comercial", "Cambio de empaque", "Movimiento corporativo o regulatorio", "Exhibición de marca"];
   const aliases = {"Sorteo": "Concurso y sorteo", "Sorteo y concurso": "Concurso y sorteo", "Alianza estratégica": "Alianza comercial", "Alianza": "Alianza comercial", "Activación": "Activación y experiencia", "Promoción": "Promoción de marca", "Canje": "Promoción de marca", "Sorteo / colaboración": "Concurso y sorteo", "Campaña de marca": "Campaña de comunicación", "Lanzamiento": "Lanzamiento de producto", "Campaña digital": "Campaña de comunicación", "Inversión productiva": "Movimiento corporativo o regulatorio", "Plataforma / Partnership": "Alianza comercial", "Promoción / Sorteo": "Concurso y sorteo", "Campaña de producto": "Campaña de comunicación", "Movimiento regulatorio": "Movimiento corporativo o regulatorio", "Impulso / Degustación": "Degustación", "Promoción experiencial + alianza": "Concurso y sorteo", "Promoción de precio": "Promoción de marca", "Promoción raspa y gana": "Promoción de marca"};
   const porId = {};
   const clave = v => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
   function categoria(v, id) {
     const k = clave(v);
-        return categorias.find(c => clave(c) === k) || String(v || '').trim();
+    if (['pastas','pastas secas','aceites','salsas','harinas','abarrote'].includes(k)) return 'Abarrotes';
+    return categorias.find(c => clave(c) === k) || String(v || '').trim();
   }
   function tipo(v, id) {
     const k = clave(v), ajuste = porId[id];
@@ -2157,6 +2158,9 @@ window.RadarCatalogo = (() => {
 [hidden]{display:none!important}
 body.radar-vista-previa .topbar::after{content:'VISTA PREVIA';font:600 10px/1.2 Arial,sans-serif;letter-spacing:.06em;color:#9e000a;background:#fde8e9;border:1px solid #edb9bd;border-radius:6px;padding:5px 7px;margin-left:8px;white-space:nowrap}
 @media(max-width:600px){body.radar-vista-previa .topbar::after{font-size:8px;padding:4px}}
+</style>
+<style>
+.h-controles-mundo{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}.h-mundo{display:grid;gap:8px;min-width:180px}.h-mundo>span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}.h-mundo select{width:100%;min-height:42px;padding:10px 34px 10px 14px;border:1px solid var(--line);border-radius:10px;background-color:var(--card);color:var(--ink);font:inherit}.heat-col{overflow-wrap:anywhere}@media(max-width:650px){.h-controles-mundo{width:100%}.h-mundo{width:100%}.h-controles-mundo .h-rango{width:100%}}
 </style>
 </head>
 <body class="radar-sin-sesion">
@@ -3673,7 +3677,7 @@ function construirDataset(filas, config) {
       marca,
       grupo,
       categoria,
-      subcategoria: campo(fila, mapa, ["Subcategoría", "Subcategoria"]) || categoria,
+      subcategoria: campo(fila, mapa, ["Subcategoría", "Subcategoria"]) || campo(fila, mapa, ["Categoría", "Categoria"]) || categoria,
       tipo: window.RadarCatalogo.tipo(campo(fila, mapa, ["Tipo de acción", "Tipo de accion", "Tipo"]) || "Acción", campo(fila, mapa, ["ID"])),
       titulo: campo(fila, mapa, ["Título", "Titulo"]) || "(Sin título)",
       resumen: campo(fila, mapa, ["Resumen"]) || descripcion.slice(0, 160),
@@ -3714,7 +3718,7 @@ function finalizar(data) {
   data.actions = data.actions || [];
   data.brands = data.brands || {};
   data.months = data.months || [];
-  data.categorias = data.categorias || [];
+  data.categorias = [...window.RadarCatalogo.categorias];
 
   // Reconstruye marcas faltantes (protege al Detalle de un acceso a undefined)
   data.actions.forEach(a => {
@@ -4484,8 +4488,16 @@ function abrirPanelMarca(marca, P, ctx) {
 /* ============================================================
    HOME — tablero ejecutivo en una sola vista
    ============================================================ */
+let mundoInicio = "";
 function Home(ctx) {
   const P = periodo(ctx);
+  if(mundoInicio){
+    ["acts","actsComp","prev","prevComp"].forEach(k=>{P[k]=P[k].filter(a=>a.categoria===mundoInicio);});
+    P.competidores=[...new Set(V.actions.filter(a=>a.categoria===mundoInicio&&!esAlicorp(a.marca)).map(a=>a.marca))];
+    P.filtroMes={...P.filtroMes,categoria:mundoInicio};
+  }
+  const selectorMundo=h("select",{"aria-label":"Mundo",onchange:e=>{mundoInicio=e.target.value;ctx.setRango(P.keys[P.iD],P.keys[P.iH]);}},h("option",{value:"",text:"Todos los mundos"}),...window.RadarCatalogo.categorias.map(c=>h("option",{value:c,text:c})));
+  selectorMundo.value=mundoInicio;
   const { acts, actsComp } = P;
   const porMarca = conteo(actsComp, a => a.marca);
   const porMarcaPrev = Object.fromEntries(conteo(P.prevComp, a => a.marca).map(x => [x.k, x.n]));
@@ -4513,7 +4525,7 @@ function Home(ctx) {
       h("div", { class: "eyebrow", text: P.etiqueta.toUpperCase() }),
       h("h1", { class: "h-hola" }, saludo(), nombre ? ", " : "", nombre ? h("span", { text: nombre }) : null, "."),
       lectura),
-    SelectorPeriodo(ctx, P));
+    h("div",{class:"h-controles-mundo"},h("label",{class:"h-mundo"},h("span",{text:"Mundo"}),selectorMundo),SelectorPeriodo(ctx, P)));
 
   /* ---------- 3 KPIs ---------- */
   const nums = [];
@@ -4536,9 +4548,9 @@ function Home(ctx) {
     kpi({ lbl: "Marcas con actividad", num: porMarca.length, sub: `de ${P.competidores.length} competidores`, color: "#2C070A",
       delta: textoDelta(dMarcas, P.etiquetaPrev), deltaCls: claseDelta(dMarcas),
       link: "Ver análisis", ir: () => ctx.go("insights") }),
-    kpi({ lbl: "Categoría con mayor presión", texto: porCat[0] ? porCat[0].k : "—",
+    kpi({ lbl: "Mundo con mayor presión", texto: porCat[0] ? porCat[0].k : "—",
       sub: porCat[0] ? `${pctDe(porCat[0].n, acts.length)}% de acciones` : "",
-      link: "Ver categoría", ir: porCat[0] ? () => ctx.go("explorer", { ...P.filtroMes, categoria: porCat[0].k }) : null })
+      link: "Ver mundo", ir: porCat[0] ? () => ctx.go("explorer", { ...P.filtroMes, categoria: porCat[0].k }) : null })
   );
 
   /* ---------- Radar ---------- */
@@ -4688,10 +4700,10 @@ const pasaFiltroIns = a => (!filtroIns.marca || a.marca === filtroIns.marca) && 
 function FiltrosInsights(ctx, P) {
   const base = V.actions.filter(a => !esAlicorp(a.marca));
   const marcas = [...new Set(base.filter(a => !filtroIns.categoria || a.categoria === filtroIns.categoria).map(a => a.marca))].sort((a, b) => a.localeCompare(b, "es"));
-  const cats = [...new Set(base.filter(a => !filtroIns.marca || a.marca === filtroIns.marca).map(a => a.categoria))].sort((a, b) => a.localeCompare(b, "es"));
+  const cats = [...window.RadarCatalogo.categorias];
   const rerender = () => ctx.setRango(P.keys[P.iD], P.keys[P.iH]);
   const sel = (k, etq, todas, ops) => {
-    const s = h("select", { "aria-label": etq, class: filtroIns[k] ? "set" : "", onchange: e => { filtroIns[k] = e.target.value; rerender(); } },
+    const s = h("select", { "aria-label": etq, class: filtroIns[k] ? "set" : "", onchange: e => { filtroIns[k] = e.target.value; if(k === "categoria" && filtroIns.marca && !base.some(a=>a.marca===filtroIns.marca && (!filtroIns.categoria || a.categoria===filtroIns.categoria))) filtroIns.marca=""; rerender(); } },
       h("option", { value: "", text: todas }), ...ops.map(o => h("option", { value: o, text: o })));
     s.value = filtroIns[k];
     return h("label", {}, h("span", { text: etq }), s);
@@ -4700,7 +4712,7 @@ function FiltrosInsights(ctx, P) {
   return h("div", { class: "ins-filtros" },
     h("span", { class: "ins-filtros-t" }, I("layers", 16), "Filtrar análisis"),
     sel("marca", "Marca", "Todas las marcas", marcas),
-    sel("categoria", "Categoría", "Todas las categorías", cats),
+    sel("categoria", "Mundo", "Todos los mundos", cats),
     activos ? h("button", { class: "ins-limpiar", onclick: () => { filtroIns.marca = ""; filtroIns.categoria = ""; rerender(); } }, I("close", 14), "Limpiar filtros") : null,
     activos ? h("span", { class: "ins-filtros-nota", text: "Todos los gráficos e indicadores muestran solo " + [filtroIns.marca, filtroIns.categoria].filter(Boolean).join(" · ") }) : null);
 }
@@ -4743,7 +4755,7 @@ function Insights(ctx) {
 
   /* 1) Mapa de calor Marca × Categoría */
   const marcasH = porMarca.slice(0, 8).map(x => x.k);
-  const catsH = porCat.slice(0, 5).map(x => x.k);
+  const catsH = [...window.RadarCatalogo.categorias];
   const celda = {};
   let maxC = 1, hot = null;
   actsComp.forEach(a => { const k = a.marca + "|" + a.categoria; celda[k] = (celda[k] || 0) + 1; });
@@ -4758,7 +4770,7 @@ function Insights(ctx) {
           "data-tip": `${m} en ${c}: ${n} ${n === 1 ? "acción" : "acciones"}` + (n ? `\n${pctDe(n, tm)}% de la actividad de ${m}` + `\nTipos: ` + conteo(actsComp.filter(a => a.marca === m && a.categoria === c), a => a.tipo).map(z => `${z.k} (${z.n})`).join(", ") : ""),
           onclick: () => n && ctx.go("explorer", { ...P.filtroMes, marca: m, categoria: c }), text: n ? String(n) : "·" }); })
     ])) : h("p", { class: "impl-vacio", text: "Sin datos en el período." });
-  const p1 = panel("ins-heat", "Presión por marca y categoría", "acciones", heat,
+  const p1 = panel("ins-heat", "Presión por marca y mundo", "acciones", heat,
     hot && hot.n ? lect([h("b", { text: hot.m }), ` concentra su mayor presión en `, h("b", { text: hot.c }), ` (${hot.n} acciones). Es el frente a vigilar.`]) : null);
 
   /* 2) Tendencia mensual apilada con eje Y */
@@ -5245,7 +5257,7 @@ function Detail(action, ctx) {
       fila("Estado", h("span", { class: "fd-estado", text: estado })),
       fila("Marca", sinDato(action.marca) ? h("span", { class: "fx-marca" }, h("i", { style: { background: brandColor(action.marca, 0.6, 0.17) } }), action.marca) : ""),
       fila("Grupo", grupo),
-      fila("Categoría", sinDato(action.categoria)),
+      fila("Mundo", sinDato(action.categoria)),
       fila("Tipo de acción", sinDato(action.tipo)),
       fila("Canal", sinDato(action.canal)),
       fila("Cadena", sinDato(action.cadena)),
@@ -5521,7 +5533,7 @@ function Explorer(ctx) {
     function elegir(v){sel.value=v;sel.dispatchEvent(new Event('change',{bubbles:true}));titulo();cerrar(true);}
     function pintarOpciones(){
       const opciones=[{v:'',l:'Todos los tipos de acción',n:registros.length},...opts.map(o=>({v:o.v??o,l:o.l??o,n:registros.filter(a=>Array.isArray(a[k])?a[k].includes(o.v??o):a[k]===(o.v??o)).length}))];
-      if(k==='categoria')opciones[0].l='Todas las categorías';
+      if(k==='categoria')opciones[0].l='Todos los mundos';
       if(k==='canal')opciones[0].l='Todos los canales';
       const visibles=opciones.filter(o=>normal(o.l).includes(normal(buscar.value)));
       lista.replaceChildren(...visibles.map(o=>h('button',{type:'button',role:'option','aria-selected':String(sel.value===o.v),class:'rc-opcion',onclick:()=>elegir(o.v)},h('span',{text:o.l}),h('small',{text:String(o.n),'aria-label':o.n+' acciones en la base'}))));
@@ -5578,7 +5590,7 @@ function Explorer(ctx) {
       h("div", { class: "filter-row" },
         selector("mes", "Mes", V.months.map(m => ({ v: m.key, l: `${m.label} ${m.year}` }))),
         selector("marca", "Marca", Object.keys(V.brands)),
-        selector("categoria", "Categoría", V.categorias),
+        selector("categoria", "Mundo", V.categorias),
         selector("tipo", "Tipo de acción", V.tipos),
         selector("canal", "Canal", V.canales),
         selector("cadena", "Cadena", [...new Set(V.actions.flatMap(a => a.cadena || []))].sort()),
@@ -5992,7 +6004,7 @@ function montarCaptura(ctx, alGuardar, opciones) {
   const nombres = ['Marca','Grupo','Categoría','Subcategoría','Tipo de acción','Título','Fecha','Canal','Ubicación','SKU involucrado','Descripción','Resumen','Insight','Fuente','Link de referencia'];
   const grid = h('div',{class:'captura-grid'}, ...nombres.map(nombre=>{
     const id='alta-'+nombres.indexOf(nombre);
-    const etiqueta=nombre==='Resumen'?'Hallazgo':nombre==='Insight'?'Insight / estrategia para Alicorp':nombre;
+    const etiqueta=nombre==='Resumen'?'Hallazgo':nombre==='Insight'?'Insight / estrategia para Alicorp':nombre==='Categoría'?'Mundo':nombre;
     let control;
     let otro=null;
     if(propiedades[nombre]){
