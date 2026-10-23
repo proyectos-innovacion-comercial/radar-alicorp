@@ -2161,19 +2161,19 @@ body.radar-vista-previa .topbar::after{content:'VISTA PREVIA';font:600 10px/1.2 
 </style>
 <style>
 .h-controles-mundo{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}.h-mundo{display:grid;gap:8px;min-width:180px}.h-mundo>span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}.h-mundo select{width:100%;min-height:42px;padding:10px 34px 10px 14px;border:1px solid var(--line);border-radius:10px;background-color:var(--card);color:var(--ink);font:inherit}.heat-col{overflow-wrap:anywhere}
-.home .h-cab{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;column-gap:18px;row-gap:0}
-.home .h-cab>div:first-child{display:contents}
-.home .h-cab .eyebrow,.home .h-cab .h-hola{grid-column:1/-1}
-.home .h-cab .h-sub{grid-column:1;grid-row:3;font-size:13px;line-height:1.55;margin:8px 0 0;min-width:0;align-self:end}
-.home .h-controles-mundo{grid-column:2;grid-row:3;display:flex;flex-wrap:nowrap;gap:8px;align-items:end}
-.home .h-controles-mundo .h-rango{gap:8px;flex-wrap:nowrap}
-.home .h-controles-mundo label{width:auto;gap:5px}
-.home .h-mundo{min-width:0;width:154px!important}
-.home .h-controles-mundo select{box-sizing:border-box;height:36px;min-height:36px;min-width:0;width:142px;padding:0 27px 0 10px;border:1px solid var(--line-2);border-radius:9px;font:600 12px var(--sans);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8A96' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center;color:var(--ink);appearance:none;cursor:pointer}
-.home .h-mundo select{width:154px}
-.home .h-controles-mundo label>span{font:700 9px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
-@media(max-width:1100px){.home .h-cab{grid-template-columns:minmax(0,1fr)}.home .h-cab .h-sub{grid-column:1;grid-row:auto}.home .h-controles-mundo{grid-column:1;grid-row:auto;margin-top:14px;justify-content:flex-start}}
-@media(max-width:520px){.home .h-controles-mundo{flex-wrap:wrap}.home .h-mundo{width:100%!important}.home .h-mundo select{width:100%}.home .h-controles-mundo .h-rango{width:100%}.home .h-rango label{flex:1}.home .h-rango select{width:100%}}
+.home-inicio .h-cab{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;column-gap:18px;row-gap:0}
+.home-inicio .h-cab>div:first-child{display:contents}
+.home-inicio .h-cab .eyebrow,.home-inicio .h-cab .h-hola{grid-column:1/-1}
+.home-inicio .h-cab .h-sub{grid-column:1;grid-row:3;font-size:13px;line-height:1.55;margin:8px 0 0;min-width:0;align-self:end}
+.home-inicio .h-controles-mundo{grid-column:2;grid-row:3;display:flex;flex-wrap:nowrap;gap:8px;align-items:end}
+.home-inicio .h-controles-mundo .h-rango{gap:8px;flex-wrap:nowrap}
+.home-inicio .h-controles-mundo label{width:auto;gap:5px}
+.home-inicio .h-mundo{min-width:0;width:154px!important}
+.home-inicio .h-controles-mundo select{box-sizing:border-box;height:36px;min-height:36px;min-width:0;width:142px;padding:0 27px 0 10px;border:1px solid var(--line-2);border-radius:9px;font:600 12px var(--sans);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8A96' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center;color:var(--ink);appearance:none;cursor:pointer}
+.home-inicio .h-mundo select{width:154px}
+.home-inicio .h-controles-mundo label>span{font:700 9px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+@media(max-width:1100px){.home-inicio .h-cab{grid-template-columns:minmax(0,1fr)}.home-inicio .h-cab .h-sub{grid-column:1;grid-row:auto}.home-inicio .h-controles-mundo{grid-column:1;grid-row:auto;margin-top:14px;justify-content:flex-start}}
+@media(max-width:520px){.home-inicio .h-controles-mundo{flex-wrap:wrap}.home-inicio .h-mundo{width:100%!important}.home-inicio .h-mundo select{width:100%}.home-inicio .h-controles-mundo .h-rango{width:100%}.home-inicio .h-rango label{flex:1}.home-inicio .h-rango select{width:100%}}
 @media(max-width:650px){.h-controles-mundo{width:100%}.h-mundo{width:100%}.h-controles-mundo .h-rango{width:100%}}
 </style>
 </head>
@@ -4685,7 +4685,7 @@ function Home(ctx) {
       : h("p", { class: "impl-vacio", text: "Sin datos de canal en el período." }));
 
   instalarTips();
-  const vista = h("div", { class: "view home" },
+  const vista = h("div", { class: "view home home-inicio" },
     cab,
     h("div", { class: "h-board" }, kpis, radar, h("div", { class: "h-col-der" }, ranking, tipos)),
     h("div", { class: "h-dos h-sec" }, movimientos, canales));
