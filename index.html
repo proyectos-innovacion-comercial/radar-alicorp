@@ -2088,6 +2088,17 @@ window.RadarCatalogo = (() => {
   const aliases = {"Sorteo": "Concurso y sorteo", "Sorteo y concurso": "Concurso y sorteo", "Alianza estratégica": "Alianza comercial", "Alianza": "Alianza comercial", "Activación": "Activación y experiencia", "Promoción": "Promoción de marca", "Canje": "Promoción de marca", "Sorteo / colaboración": "Concurso y sorteo", "Campaña de marca": "Campaña de comunicación", "Lanzamiento": "Lanzamiento de producto", "Campaña digital": "Campaña de comunicación", "Inversión productiva": "Movimiento corporativo o regulatorio", "Plataforma / Partnership": "Alianza comercial", "Promoción / Sorteo": "Concurso y sorteo", "Campaña de producto": "Campaña de comunicación", "Movimiento regulatorio": "Movimiento corporativo o regulatorio", "Impulso / Degustación": "Degustación", "Promoción experiencial + alianza": "Concurso y sorteo", "Promoción de precio": "Promoción de marca", "Promoción raspa y gana": "Promoción de marca"};
   const porId = {};
   const clave = v => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const marcasOficiales = ["Oreo","Field","Doritos","Clorox","Molitalia","Marinero","Gloria","Ayudín","Nosotras","Kirma","Milo","La Mesa","Colgate","Sedal","Florida","Tondero","Nestlé","Orion","Pantene","Coca-Cola","Lesly","Loa","Doña Gusta","Sublime","Bonlé","Ña Pancha","Nescafé","Head & Shoulders","Lay’s","D’Kasa","P&G","Ritz","Morochas","Triángulo","Ideal","Ecco","Cafetal","Ariel","Downy","Costa"];
+  const claveMarca = v => clave(v).replace(/[’‘´`']/g, "").replace(/[^a-z0-9&]/g, "");
+  const nombresMarca = new Map(marcasOficiales.map(v=>[claveMarca(v),v]));
+  [['lays','Lay’s'],['dkasa','D’Kasa'],['headshoulder','Head & Shoulders'],['head&shoulder','Head & Shoulders'],['headshoulders','Head & Shoulders'],['h&s','Head & Shoulders'],['ritzs','Ritz']].forEach(([k,v])=>nombresMarca.set(k,v));
+  function marca(v) {
+    const raw=String(v||'').trim().replace(/\s+/g,' ');
+    // Separar únicamente delimitadores explícitos; conservar alianzas en una sola acción.
+    const partes=raw.split(/\s*[,;\/|]\s*/).filter(Boolean);
+    const normalizadas=partes.map(p=>nombresMarca.get(claveMarca(p)) || p.toLocaleLowerCase('es').replace(/(^|[\s-])\p{L}/gu,c=>c.toLocaleUpperCase('es')));
+    return [...new Set(normalizadas)].sort((a,b)=>a.localeCompare(b,'es')).join(' / ');
+  }
   function categoria(v, id) {
     const k = clave(v);
     if (['pastas','pastas secas','aceites','salsas','harinas','abarrote'].includes(k)) return 'Abarrotes';
@@ -2099,6 +2110,7 @@ window.RadarCatalogo = (() => {
     return tipos.find(t => clave(t) === k) || Object.entries(aliases).find(([a]) => clave(a) === k)?.[1] || String(v || '').trim();
   }
   function validar(campos) {
+    campos['Marca'] = marca(campos['Marca']);
     campos['Categoría'] = categoria(campos['Categoría']);
     campos['Tipo de acción'] = tipo(campos['Tipo de acción']);
     const errores = [];
@@ -2126,7 +2138,7 @@ window.RadarCatalogo = (() => {
     });
     return {canal, cadena};
   }
-  return Object.freeze({categorias: Object.freeze(categorias), tipos: Object.freeze(tipos), categoria, tipo, validar, distribucion});
+  return Object.freeze({categorias: Object.freeze(categorias), tipos: Object.freeze(tipos), categoria, tipo, marca, claveMarca, validar, distribucion});
 })();
 </script>
 <style>
@@ -3641,13 +3653,19 @@ function construirDataset(filas, config) {
   const chequeo = validarEncabezados(Object.keys(rows[0]));
   if (!chequeo.valido) log("Encabezados faltantes en la hoja:", chequeo.faltantes);
 
+  const marcasCanonicas = new Map();
+  rows.map(f=>window.RadarCatalogo.marca(campo(f,mapa,["Marca"])) ).filter(Boolean).sort((a,b)=>{
+    const ac=x=>(x.normalize('NFD').match(/[\u0300-\u036f]/g)||[]).length;
+    return ac(b)-ac(a)||a.localeCompare(b,'es');
+  }).forEach(m=>{const k=window.RadarCatalogo.claveMarca(m);if(!marcasCanonicas.has(k))marcasCanonicas.set(k,m);});
   const brands = {};
   const monthsSet = {};
   const categoriasSet = {};
   let maxFecha = "";
 
   const actions = rows.map((fila, i) => {
-    const marca = campo(fila, mapa, ["Marca"]) || "Sin marca";
+    const marcaBase = window.RadarCatalogo.marca(campo(fila, mapa, ["Marca"]));
+    const marca = marcasCanonicas.get(window.RadarCatalogo.claveMarca(marcaBase)) || marcaBase || "Sin marca";
     const grupo = campo(fila, mapa, ["Grupo", "Grupo económico", "Grupo economico"]);
     const fp = parseFecha(campo(fila, mapa, ["Fecha"]));
     const mes = fp ? `${fp.y}-${pad2(fp.mo)}` : "sin-fecha";
