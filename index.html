@@ -2099,6 +2099,13 @@ window.RadarCatalogo = (() => {
     const normalizadas=partes.map(p=>nombresMarca.get(claveMarca(p)) || p.toLocaleLowerCase('es').replace(/(^|[\s-])\p{L}/gu,c=>c.toLocaleUpperCase('es')));
     return [...new Set(normalizadas)].sort((a,b)=>a.localeCompare(b,'es')).join(' / ');
   }
+  function marcas(v) {
+    return marca(v).split(/\s*\/\s*/).filter(Boolean);
+  }
+  function coincideMarca(valor, seleccion) {
+    const presentes=new Set(marcas(valor).map(claveMarca));
+    return marcas(seleccion).every(m=>presentes.has(claveMarca(m)));
+  }
   function categoria(v, id) {
     const k = clave(v);
     if (['pastas','pastas secas','aceites','salsas','harinas','abarrote'].includes(k)) return 'Abarrotes';
@@ -2138,7 +2145,7 @@ window.RadarCatalogo = (() => {
     });
     return {canal, cadena};
   }
-  return Object.freeze({categorias: Object.freeze(categorias), tipos: Object.freeze(tipos), categoria, tipo, marca, claveMarca, validar, distribucion});
+  return Object.freeze({categorias: Object.freeze(categorias), tipos: Object.freeze(tipos), categoria, tipo, marca, marcas, coincideMarca, claveMarca, validar, distribucion});
 })();
 </script>
 <style>
@@ -4453,8 +4460,8 @@ const claseDelta = d => d > 0 ? "up" : d < 0 ? "down" : "";
 function abrirPanelMarca(marca, P, ctx) {
   const prevPanel = document.querySelector(".bd-overlay");
   if (prevPanel) prevPanel.remove();
-  const suyas = P.acts.filter(a => a.marca === marca);
-  const antes = P.prev.filter(a => a.marca === marca);
+  const suyas = P.acts.filter(a => window.RadarCatalogo.coincideMarca(a.marca,marca));
+  const antes = P.prev.filter(a => window.RadarCatalogo.coincideMarca(a.marca,marca));
   const d = P.previos.length ? suyas.length - antes.length : null;
   const share = pctDe(suyas.length, P.actsComp.length);
   const meta = V.brands[marca] || {};
@@ -4727,15 +4734,15 @@ function calor(n, max) {
 
 /* Filtros de Insights (se conservan mientras dure la sesión) */
 const filtroIns = { marca: "", categoria: "" };
-const pasaFiltroIns = a => (!filtroIns.marca || a.marca === filtroIns.marca) && (!filtroIns.categoria || a.categoria === filtroIns.categoria);
+const pasaFiltroIns = a => (!filtroIns.marca || window.RadarCatalogo.coincideMarca(a.marca, filtroIns.marca)) && (!filtroIns.categoria || a.categoria === filtroIns.categoria);
 
 function FiltrosInsights(ctx, P) {
   const base = V.actions.filter(a => !esAlicorp(a.marca));
-  const marcas = [...new Set(base.filter(a => !filtroIns.categoria || a.categoria === filtroIns.categoria).map(a => a.marca))].sort((a, b) => a.localeCompare(b, "es"));
+  const marcas = [...new Set(base.filter(a => !filtroIns.categoria || a.categoria === filtroIns.categoria).flatMap(a => window.RadarCatalogo.marcas(a.marca)))].sort((a, b) => a.localeCompare(b, "es"));
   const cats = [...window.RadarCatalogo.categorias];
   const rerender = () => ctx.setRango(P.keys[P.iD], P.keys[P.iH]);
   const sel = (k, etq, todas, ops) => {
-    const s = h("select", { "aria-label": etq, class: filtroIns[k] ? "set" : "", onchange: e => { filtroIns[k] = e.target.value; if(k === "categoria" && filtroIns.marca && !base.some(a=>a.marca===filtroIns.marca && (!filtroIns.categoria || a.categoria===filtroIns.categoria))) filtroIns.marca=""; rerender(); } },
+    const s = h("select", { "aria-label": etq, class: filtroIns[k] ? "set" : "", onchange: e => { filtroIns[k] = e.target.value; if(k === "categoria" && filtroIns.marca && !base.some(a=>window.RadarCatalogo.coincideMarca(a.marca,filtroIns.marca) && (!filtroIns.categoria || a.categoria===filtroIns.categoria))) filtroIns.marca=""; rerender(); } },
       h("option", { value: "", text: todas }), ...ops.map(o => h("option", { value: o, text: o })));
     s.value = filtroIns[k];
     return h("label", {}, h("span", { text: etq }), s);
@@ -5470,7 +5477,7 @@ function Explorer(ctx) {
     const term = q.trim().toLowerCase();
     return V.actions.filter(a => {
       if (f.mes && a.mes !== f.mes) return false;
-      if (f.marca && a.marca !== f.marca) return false;
+      if (f.marca && !window.RadarCatalogo.coincideMarca(a.marca, f.marca)) return false;
       if (f.categoria && a.categoria !== f.categoria) return false;
       if (f.tipo && a.tipo !== f.tipo) return false;
       if (f.canal && !a.canal.includes(f.canal)) return false;
@@ -5621,7 +5628,7 @@ function Explorer(ctx) {
       ),
       h("div", { class: "filter-row" },
         selector("mes", "Mes", V.months.map(m => ({ v: m.key, l: `${m.label} ${m.year}` }))),
-        selector("marca", "Marca", Object.keys(V.brands)),
+        selector("marca", "Marca", [...new Set(V.actions.flatMap(a=>window.RadarCatalogo.marcas(a.marca)))].sort((a,b)=>a.localeCompare(b,"es"))),
         selector("categoria", "Mundo", V.categorias),
         selector("tipo", "Tipo de acción", V.tipos),
         selector("canal", "Canal", V.canales),
