@@ -2195,6 +2195,11 @@ body.radar-vista-previa .topbar::after{content:'VISTA PREVIA';font:600 10px/1.2 
 @media(max-width:520px){.home-inicio .h-controles-mundo{flex-wrap:wrap}.home-inicio .h-mundo{width:100%!important}.home-inicio .h-mundo select{width:100%}.home-inicio .h-controles-mundo .h-rango{width:100%}.home-inicio .h-rango label{flex:1}.home-inicio .h-rango select{width:100%}}
 @media(max-width:650px){.h-controles-mundo{width:100%}.h-mundo{width:100%}.h-controles-mundo .h-rango{width:100%}}
 </style>
+<style>
+.stats-page{padding:28px clamp(18px,3vw,48px);max-width:1700px;margin:auto;color:var(--ink)}
+.stats-head,.stats-actions,.stats-filters,.stats-table-head{display:flex;align-items:center;justify-content:space-between;gap:16px}.stats-head{margin-bottom:24px;align-items:flex-start}.stats-head h1{font-size:clamp(28px,3vw,42px);margin:5px 0 8px;letter-spacing:-1px}.stats-eyebrow{font-size:11px;letter-spacing:2px;color:var(--muted);font-weight:700}.stats-muted{color:var(--muted);font-size:13px}.stats-actions{flex-shrink:0}.stats-actions a{text-decoration:none}.stats-filters{padding:16px 20px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:18px;flex-wrap:wrap;justify-content:flex-start}.stats-filters>span{margin-left:auto}.stats-field{display:flex;align-items:center;gap:10px;font-size:13px}.stats-field select,.stats-table-head input{border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:var(--card);color:var(--ink);font:inherit}.stats-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:18px}.stats-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;min-width:0}.stats-kpi{display:flex;gap:16px;align-items:flex-start}.stats-kpi strong{display:block;font-size:34px;letter-spacing:-1px;line-height:1.5}.stats-kpi small{display:block;font-size:12px}.stats-icon{display:flex;padding:14px;border-radius:13px}.stats-tone-0{background:#fce6e9;color:#d50019}.stats-tone-1{background:#e6f1fc;color:#00689a}.stats-tone-2{background:#e7f4e5;color:#238342}.stats-tone-3{background:#fff2d6;color:#986700}.stats-charts{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;margin-bottom:18px}.stats-card h2{font-size:19px;margin:0 0 6px}.stats-bars{display:flex;height:180px;align-items:stretch;gap:10px;overflow-x:auto;padding-top:14px;margin-top:20px;background:repeating-linear-gradient(to top,transparent 0,transparent 44px,var(--line) 45px)}.stats-bar-col{min-width:28px;flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px}.stats-bar-track{height:130px;display:flex;align-items:flex-end;width:100%;justify-content:center}.stats-bar{background:#ed0016;width:min(32px,80%);border-radius:5px 5px 0 0;min-height:1px}.stats-empty{min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}.stats-empty p{max-width:330px;margin:0}.stats-rank{display:flex;width:100%;justify-content:space-between;align-items:center;gap:16px;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);padding:14px 0;cursor:pointer;font:inherit;font-size:13px}.stats-rank b{color:#e00019;background:#fee9ed;padding:6px 10px;border-radius:8px}.stats-table-head{margin-bottom:18px}.stats-table-scroll{overflow:auto;max-height:430px}.stats-table-scroll table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}.stats-table-scroll th{text-align:left;background:var(--paper);padding:12px;font-weight:600;position:sticky;top:0}.stats-table-scroll td{padding:14px 12px;border-bottom:1px solid var(--line)}.stats-person{display:flex;gap:10px;align-items:center}.stats-person small{display:block;margin-top:3px;font-size:11px}.stats-avatar{background:#ffe2e6;color:#cb0019;padding:10px;border-radius:50%;font-weight:700}.stats-role{padding:5px 9px;background:#ffe8eb;color:#c80019;border-radius:12px}.stats-footnote{font-size:11px;color:var(--muted);padding:12px;background:var(--paper);border-radius:10px;margin-bottom:0}@media(max-width:1000px){.stats-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.stats-head{flex-wrap:wrap}.stats-charts{grid-template-columns:1fr}}@media(max-width:600px){.stats-kpi{padding:14px;gap:8px}.stats-icon{padding:9px}.stats-kpi strong{font-size:26px}.stats-table-head{flex-wrap:wrap}.stats-field{width:100%;justify-content:space-between}.stats-field select{max-width:65%}}
+</style>
+
 </head>
 <body class="radar-sin-sesion">
 
@@ -2261,6 +2266,7 @@ window.RadarAcceso = (() => {
     return {ok:false, mensaje:'Modo boceto: esta acción se habilita cuando se conecte el backend de Alicorp.'};
   }
   const el = id => document.getElementById(id);
+  let permisoEstadisticas = false;
   let token = '', usuario = '', nombre = '', rol = '', resolver, comprobando = false, generacion = 0;
   const listo = new Promise(resolve => { resolver = resolve; });
   const mensaje = texto => { el('radar-acceso-mensaje').textContent = texto; };
@@ -2316,7 +2322,7 @@ window.RadarAcceso = (() => {
     }
   }
   function bloquear(texto) {
-    token = ''; usuario = ''; nombre = ''; rol = ''; generacion++; document.body.classList.remove('radar-editor');
+    permisoEstadisticas=false;token = ''; usuario = ''; nombre = ''; rol = ''; generacion++; document.body.classList.remove('radar-editor');
     window.dispatchEvent(new Event('radar:salida'));
     document.body.classList.add('radar-sin-sesion');
     el('radar-ingreso').hidden = false; el('radar-cerrar').hidden = true;
@@ -2329,7 +2335,7 @@ window.RadarAcceso = (() => {
     if (!d.ok) { if(d.codigo==='SESION_INVALIDA') bloquear(d.mensaje); throw new Error(d.mensaje); }
     if(!['editor','consultor'].includes(d.rol))throw new Error('No se pudo validar el permiso de acceso.');
     if(rol && rol!==d.rol){bloquear('Tus permisos cambiaron. Vuelve a ingresar.');throw new Error('Tus permisos cambiaron.');}
-    rol=d.rol;document.body.classList.toggle('radar-editor',rol==='editor');
+    permisoEstadisticas=d.puedeVerEstadisticas===true;rol=d.rol;document.body.classList.toggle('radar-editor',rol==='editor');
     return d;
   }
   el('radar-acceso-form').addEventListener('submit',async e => {
@@ -2404,7 +2410,7 @@ window.RadarAcceso = (() => {
     if (!d.ok) throw new Error(d.mensaje || 'No se pudo completar la operación de portada.');
     return d;
   }
-  return Object.freeze({listo,validar,registros,activa:()=>!!token,usuario:()=>usuario,nombre:()=>nombre,rol:()=>rol,editor:()=>!MODO_BOCETO&&!!token&&rol==='editor',
+  return Object.freeze({listo,validar,registros,estadisticasPermitidas:()=>permisoEstadisticas,activa:()=>!!token,usuario:()=>usuario,nombre:()=>nombre,rol:()=>rol,editor:()=>!MODO_BOCETO&&!!token&&rol==='editor',
     prepararPortada:id=>portada('prepararPortada',{id}),
     guardarPortada:guardarFoto,
     guardarEncuadre:datos=>portada('guardarEncuadre',datos),
@@ -4178,7 +4184,7 @@ const VISTAS_NAV = [
   { k: "insights", l: "Insights", i: "chart" },
   { k: "compare", l: "Comparador", i: "compare" }
 ];
-const tituloVista = k => k === "nueva" ? "Nueva acción" : (VISTAS_NAV.find(v => v.k === k) || VISTAS_NAV[0]).l;
+const tituloVista = k => k === "estadisticas" ? "Estadísticas de uso" : k === "nueva" ? "Nueva acción" : (VISTAS_NAV.find(v => v.k === k) || VISTAS_NAV[0]).l;
 
 function iniciales(txt) {
   const p = String(txt || "?").replace(/[^\p{L}\p{N}\s]/gu, " ").trim().split(/\s+/).filter(Boolean);
@@ -4214,6 +4220,7 @@ function Sidebar(ctx) {
       h("div", { class: "side-grupo", text: "Navegación" }),
       ...VISTAS_NAV.map(v => item(v.k, v.l, v.i,
         v.k === "explorer" && total ? h("span", { class: "side-badge", text: String(total) }) : null)),
+      window.RadarAcceso.estadisticasPermitidas() ? item("estadisticas", "Estadísticas de uso", "chart") : null,
       editor ? h("div", { class: "side-grupo", text: "Registro" }) : null,
       editor ? h("button", { class: "side-item cta" + (ctx.view === "nueva" ? " activo-cta" : ""), title: "Nueva acción",
         onclick: () => { ctx.cerrarMenu(); ctx.nuevaAccion(); } },
@@ -6266,7 +6273,7 @@ const UI = __M_ui;
 const Anim = __M_animations;
 const { montarCaptura } = __M_capture;
 
-const VISTAS = ["home", "explorer", "timeline", "insights", "compare", "nueva"];
+const VISTAS = ["home", "explorer", "timeline", "insights", "compare", "nueva", "estadisticas"];
 
 const estado = {
   view: "home",
@@ -6476,6 +6483,7 @@ function render() {
   } else {
     let vista;
     switch (estado.view) {
+      case "estadisticas": vista = window.RadarEstadisticas.vista(ctx,V.actions); break;
       case "explorer": vista = UI.Explorer(ctx); break;
       case "timeline": vista = UI.Timeline(ctx); break;
       case "insights": vista = UI.Insights(ctx); break;
@@ -6655,8 +6663,6 @@ return {  };
 // Medición aproximada: pestaña visible + actividad en el último minuto.
 (()=>{
  let visita='',segundos=0,fichas=[],ultimo=Date.now(),tick=Date.now(),secuencia=0,enviando=false,cola=null;
- const panel=document.createElement('dialog');panel.style.cssText='width:min(1100px,94vw);max-height:85vh;overflow:auto;border:1px solid #ddd;border-radius:20px;padding:24px;background:white;color:#172030;';document.body.append(panel);
- const boton=document.createElement('button');boton.textContent='Estadísticas de uso';boton.className='btn';boton.style.cssText='position:fixed;bottom:84px;left:96px;z-index:90;';boton.hidden=true;document.body.append(boton);
  function medir(){const ahora=Date.now();if(visita&&!document.hidden&&ahora-ultimo<60000)segundos+=Math.min((ahora-tick)/1000,5);tick=ahora;}
  function actividad(){medir();ultimo=Date.now();}
  ['pointerdown','keydown','scroll','pointermove'].forEach(t=>document.addEventListener(t,actividad,{passive:true}));
@@ -6664,19 +6670,43 @@ return {  };
    if(!cola)cola={visita,secuencia:++secuencia,segundos:Math.floor(segundos),fichas:fichas.slice()};
    const copia=cola;try{const r=await window.RadarAcceso.registrarUso(copia);if(r.ok&&cola===copia)cola=null;}catch(e){}finally{enviando=false;}}
  function ficha(){if(!visita)return;const m=location.hash.match(/^#\/accion\/([^?]+)/);if(m){const id=decodeURIComponent(m[1]);if(fichas.length<1000)fichas.push(id);enviar();}}
- window.addEventListener('radar:ingreso',async()=>{visita=crypto.randomUUID();segundos=0;fichas=[];secuencia=0;cola=null;ultimo=tick=Date.now();enviar();ficha();try{const d=await window.RadarAcceso.validar();boton.hidden=!d.puedeVerEstadisticas;}catch(e){}});
- window.addEventListener('radar:salida',()=>{visita='';cola=null;boton.hidden=true;panel.close();});
- window.addEventListener('hashchange',ficha);document.addEventListener('visibilitychange',()=>{medir();enviar();});
- setInterval(medir,1000);setInterval(enviar,60000);
- function el(t,txt){const n=document.createElement(t);n.textContent=txt;return n;}
- boton.onclick=async()=>{panel.replaceChildren(el('h2','Estadísticas de uso'));const cerrar=el('button','Cerrar');cerrar.className='btn';cerrar.onclick=()=>panel.close();panel.append(cerrar,el('p','Cargando…'));panel.showModal();try{await enviar();const d=await window.RadarAcceso.estadisticas();if(!d.ok)throw Error(d.mensaje);
- panel.lastChild.remove();panel.append(el('p',`${d.totalVisitas} visitas · ${d.usuarios} usuarios · ${d.minutos} minutos activos`),el('p','Una visita se cuenta por ingreso a esta pestaña. El tiempo es aproximado: se pausa al ocultarla o tras un minuto sin interacción. Puede perderse el último minuto al cerrar. Se muestran las últimas 500 visitas.'));
- const a=el('a','Abrir registro completo');a.href=d.url;a.target='_blank';a.rel='noopener';panel.append(a);
- const wrap=el('div','');wrap.style.overflowX='auto';const tabla=el('table','');tabla.style.cssText='width:100%;border-collapse:collapse;margin-top:20px;font-size:13px';const cab=el('tr','');['Usuario','Rol','Ingreso','Último registro','Tiempo activo','Fichas abiertas','IDs de fichas'].forEach(t=>cab.append(el('th',t)));tabla.append(cab);
- d.visitas.forEach(v=>{const tr=el('tr','');[v.nombre+' ('+v.usuario+')',v.rol,new Date(v.ingreso).toLocaleString('es-PE'),new Date(v.ultimo).toLocaleString('es-PE'),Math.floor(v.segundos/60)+' min '+v.segundos%60+' s',v.fichas,v.ids].forEach(t=>{const td=el('td',String(t));td.style.cssText='padding:10px;border-bottom:1px solid #eee;max-width:260px;overflow-wrap:anywhere';tr.append(td);});tabla.append(tr);});wrap.append(tabla);panel.append(wrap);
- }catch(e){panel.append(el('p',e.message));}};
+ window.addEventListener('radar:ingreso',()=>{visita=crypto.randomUUID();segundos=0;fichas=[];secuencia=0;cola=null;ultimo=tick=Date.now();enviar();ficha();});
+ window.addEventListener('radar:salida',()=>{visita='';cola=null;});
+ window.addEventListener('hashchange',ficha);document.addEventListener('visibilitychange',()=>{medir();enviar();});setInterval(medir,1000);setInterval(enviar,60000);
+ const E=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n;};
+ const duration=s=>{s=Math.round(Number(s)||0);return s>=3600?Math.floor(s/3600)+' h '+Math.floor(s%3600/60)+' min':s>=60?Math.floor(s/60)+' min '+s%60+' s':s+' s';};
+ const date=s=>new Date(s).toLocaleString('es-PE',{timeZone:'America/Lima',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+ const day=s=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Lima',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(s));
+ function icon(tipo){const paths={eye:'M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12 M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6',people:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M17 4a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-3.9',clock:'M12 8v4l3 2 M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',file:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h8'};const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');[['viewBox','0 0 24 24'],['width','24'],['height','24'],['fill','none'],['stroke','currentColor'],['stroke-width','1.7'],['stroke-linecap','round'],['stroke-linejoin','round'],['aria-hidden','true']].forEach(([k,v])=>svg.setAttribute(k,v));const p=document.createElementNS(svg.namespaceURI,'path');p.setAttribute('d',paths[tipo]||paths.file);svg.append(p);return svg;}
+ window.RadarEstadisticas={vista(ctx,actions){
+  const root=E('section','stats-page');if(!window.RadarAcceso.estadisticasPermitidas()){root.append(E('h2','','Acceso restringido'),E('p','','Esta sección está disponible solo para la cuenta autorizada.'));return root;}
+  let datos=[],disposed=false,cargando=false;ctx.alSalir(()=>{disposed=true;});
+  const head=E('div','stats-head'),texts=E('div');texts.append(E('p','stats-eyebrow','ADMINISTRACIÓN · SOLO TU CUENTA'),E('h1','','Estadísticas de uso'),E('p','stats-muted','Conoce quién consulta el radar y qué contenido despierta más interés.'));
+  const controls=E('div','stats-actions'),refresh=E('button','btn ghost','Actualizar'),link=E('a','btn ghost','Abrir registro');link.target='_blank';link.rel='noopener';link.hidden=true;controls.append(refresh,link);head.append(texts,controls);root.append(head);
+  const filters=E('div','stats-filters');
+  function select(label,options){const lab=E('label','stats-field',label),sel=E('select');options.forEach(([v,t])=>{const o=E('option','',t);o.value=v;sel.append(o);});lab.append(sel);filters.append(lab);sel.onchange=paint;return sel;}
+  const period=select('Período',[['30','Últimos 30 días'],['7','Últimos 7 días'],['1','Hoy'],['all','Todo el historial disponible']]),user=select('Usuario',[['','Todos']]),role=select('Rol',[['','Todos'],['editor','Editor'],['consultor','Consultor']]);
+  const status=E('span','stats-muted','Cargando…');status.setAttribute('role','status');filters.append(status);root.append(filters);
+  const metrics=E('div','stats-metrics'),charts=E('div','stats-charts'),tableCard=E('section','stats-card stats-table-card');root.append(metrics,charts,tableCard);
+  const th=E('div','stats-table-head'),title=E('h2','','Detalle de visitas'),search=E('input');search.type='search';search.placeholder='Buscar usuario…';search.setAttribute('aria-label','Buscar usuario');search.oninput=paint;th.append(title,search);tableCard.append(th);
+  const body=E('div','stats-table-scroll');tableCard.append(body,E('p','stats-footnote','El tiempo activo es aproximado: se pausa al ocultar la pestaña o después de 1 minuto sin interacción. Puede perderse el último minuto al cerrar. Las fichas son aperturas de detalles, no descargas.'));
+  function paint(){
+   const today=day(Date.now()),start=new Date(today+'T12:00:00Z');if(period.value!=='all')start.setUTCDate(start.getUTCDate()-Number(period.value)+1);const cutoff=period.value==='all'?'':start.toISOString().slice(0,10);
+   const visits=datos.filter(v=>(!cutoff||day(v.ingreso)>=cutoff)&&(!user.value||v.usuario===user.value)&&(!role.value||v.rol===role.value)&&(!search.value.trim()||`${v.nombre} ${v.usuario}`.toLowerCase().includes(search.value.trim().toLowerCase())));
+   metrics.replaceChildren();[['Visitas',visits.length,'Ingresos al radar','eye'],['Usuarios únicos',new Set(visits.map(v=>v.usuario)).size,'Personas que ingresaron','people'],['Tiempo activo',duration(visits.reduce((s,v)=>s+Number(v.segundos||0),0)),'Interacción estimada','clock'],['Fichas abiertas',visits.reduce((s,v)=>s+Number(v.fichas||0),0),'Consultas de acciones','file']].forEach(([label,val,desc,ic],i)=>{const card=E('section','stats-card stats-kpi'),ico=E('span','stats-icon stats-tone-'+i),txt=E('div');ico.append(icon(ic));txt.append(E('span','stats-muted',label),E('strong','',val),E('small','stats-muted',desc));card.append(ico,txt);metrics.append(card);});
+   charts.replaceChildren();const activity=E('section','stats-card'),popular=E('section','stats-card');activity.append(E('h2','','Actividad por día'),E('p','stats-muted','Número de visitas en el período seleccionado.'));const counts={};visits.forEach(v=>{const k=day(v.ingreso);counts[k]=(counts[k]||0)+1;});
+   const days=[];if(period.value==='all'){days.push(...Object.keys(counts).sort());}else{const cursor=new Date(start);while(cursor.toISOString().slice(0,10)<=today){days.push(cursor.toISOString().slice(0,10));cursor.setUTCDate(cursor.getUTCDate()+1);}}
+   const bars=E('div','stats-bars'),max=Math.max(1,...Object.values(counts));if(!visits.length)bars.append(E('p','stats-empty','Aún no hay visitas para estos filtros.'));else days.forEach(d=>{const col=E('div','stats-bar-col'),track=E('div','stats-bar-track'),bar=E('div','stats-bar');bar.style.height=((counts[d]||0)/max*100)+'%';bar.title=d+': '+(counts[d]||0)+' visitas';track.append(bar);col.append(E('small','',counts[d]||''),track,E('small','',d.slice(8)+'/'+d.slice(5,7)));bars.append(col);});activity.append(bars);
+   popular.append(E('h2','','Contenido consultado'),E('p','stats-muted','Fichas de acciones más vistas en el período.'));const ranking={};visits.forEach(v=>String(v.ids||'').split(' | ').filter(Boolean).forEach(id=>ranking[id]=(ranking[id]||0)+1));const top=Object.entries(ranking).sort((a,b)=>b[1]-a[1]).slice(0,5);
+   if(!top.length){const empty=E('div','stats-empty');empty.append(icon('file'),E('strong','','Aún no hay fichas consultadas'),E('p','stats-muted','Aquí aparecerán las acciones cuando se abran sus detalles.'));popular.append(empty);}else top.forEach(([id,n])=>{const row=E('button','stats-rank'),action=actions.find(a=>a.id===id);row.append(E('span','',action?.titulo||id),E('b','',n));row.onclick=()=>ctx.go('accion/'+encodeURIComponent(id));popular.append(row);});charts.append(activity,popular);
+   title.textContent='Detalle de visitas · '+visits.length+' registros';const table=E('table'),thead=E('thead'),tr=E('tr');['Usuario','Rol','Ingreso','Último registro','Tiempo activo','Fichas'].forEach(t=>tr.append(E('th','',t)));thead.append(tr);table.append(thead);const tbody=E('tbody');visits.forEach(v=>{const row=E('tr'),name=E('td'),person=E('div','stats-person'),avatar=E('span','stats-avatar',String(v.nombre||v.usuario).split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()),details=E('div');details.append(E('b','',v.nombre||v.usuario),E('small','stats-muted',v.usuario));person.append(avatar,details);name.append(person);const tdRole=E('td'),badge=E('span','stats-role',v.rol==='editor'?'Editor':'Consultor');tdRole.append(badge);row.append(name,tdRole,E('td','',date(v.ingreso)),E('td','',date(v.ultimo)),E('td','',duration(v.segundos)),E('td','',v.fichas));tbody.append(row);});table.append(tbody);body.replaceChildren(table);if(!visits.length)body.append(E('p','stats-empty','Sin registros para los filtros seleccionados.'));
+  }
+  async function load(){if(cargando)return;cargando=true;refresh.disabled=true;status.textContent='Actualizando…';try{await enviar();const d=await window.RadarAcceso.estadisticas();if(disposed)return;if(!d.ok)throw Error(d.mensaje);datos=d.visitas;link.href=d.url;link.hidden=false;const selected=user.value;user.replaceChildren(new Option('Todos',''),...Array.from(new Set(datos.map(v=>v.usuario))).sort().map(u=>new Option(u,u)));user.value=selected;status.textContent='Actualizado · últimos '+datos.length+' registros (máximo 500)';paint();}catch(e){if(!disposed)status.textContent=e.message;}finally{cargando=false;refresh.disabled=false;}}
+  refresh.onclick=load;load();return root;
+ }};
 })();
 </script>
+
 
 </body>
 </html>
