@@ -2408,6 +2408,8 @@ window.RadarAcceso = (() => {
     prepararPortada:id=>portada('prepararPortada',{id}),
     guardarPortada:guardarFoto,
     guardarEncuadre:datos=>portada('guardarEncuadre',datos),
+    registrarUso:datos=>solicitud(Object.assign({},datos,{accion:'registrarUso',token})),
+    estadisticas:()=>solicitud({accion:'estadisticas',token}),
     crearAccion:datos=>portada('crearAccion',datos)});
 })();
 </script>
@@ -3724,6 +3726,7 @@ function construirDataset(filas, config) {
       sku: campo(fila, mapa, ["SKU involucrado", "SKU"]) || "—",
       canal: splitList(campo(fila, mapa, ["Canal", "Canales"])),
       cadena: splitList(campo(fila, mapa, ["Cadena"])),
+      giro: String(campo(fila, mapa, ["Giro de negocio"]) || "Por identificar").split(/\s*\/\s*|\s*;\s*|\s*\|\s*/).map(x => x.trim()).filter(Boolean),
       ubicacion: campo(fila, mapa, ["Ubicación", "Ubicacion"]) || "—",
       fuente: campo(fila, mapa, ["Fuente"]) || "—",
       insight: campo(fila, mapa, ["Insight", "Insight estratégico", "Insight estrategico"]),
@@ -3850,6 +3853,7 @@ function registroDesdeAccion(a) {
     "Descripción": a.descripcion || "",
     "SKU involucrado": a.sku === "—" ? "" : (a.sku || ""),
     "Canal": Array.isArray(a.canal) ? a.canal.join("; ") : (a.canal || ""),
+    "Giro de negocio": (a.giro || []).join(" / "),
     "Ubicación": a.ubicacion === "—" ? "" : (a.ubicacion || ""),
     "Imagen principal": a.imagen || "",
     "Imágenes adicionales": extras.join(", "),
@@ -5309,6 +5313,7 @@ function Detail(action, ctx) {
       fila("Mundo", sinDato(action.categoria)),
       fila("Tipo de acción", sinDato(action.tipo)),
       fila("Canal", sinDato(action.canal)),
+      fila("Giro de negocio", sinDato((action.giro || []).join(" / "))),
       fila("Cadena", sinDato(action.cadena)),
       fila("Fecha", fechaCorta),
       fila("SKU", sinDato(action.sku), true)));
@@ -5394,7 +5399,7 @@ function descargarFicha(action) {
   const img = action.imagen && esUrl(action.imagen) ? action.imagen : "";
   const filas = [
     ["Código", action.id], ["Marca / grupo", [action.marca, grupo].filter(Boolean).join(" / ")], ["Categoría", action.categoria],
-    ["Tipo de acción", action.tipo], ["SKU", action.sku], ["Canal", action.canal], ["Ubicación", action.ubicacion],
+    ["Tipo de acción", action.tipo], ["SKU", action.sku], ["Canal", action.canal], ["Giro de negocio", (action.giro || []).join(" / ")], ["Ubicación", action.ubicacion],
     ["Fuente", action.fuente], ["Fecha", action.fecha], ["Estado", estado], ["Descripción", action.descripcion]
   ].map(([k, x]) => `<tr><th>${escaparHtml(k)}</th><td>${v(x)}</td></tr>`).join("");
   const nombre = "Radar_Alicorp_" + String(action.id || "ficha").replace(/[^A-Za-z0-9_-]/g, "");
@@ -5468,7 +5473,7 @@ tr:nth-child(odd) { background: #F3F7F8; }
    EXPLORADOR
    ============================================================ */
 function Explorer(ctx) {
-  const f = { mes: "", marca: "", categoria: "", tipo: "", canal: "", cadena: "", ...(ctx.filtros || {}) };
+  const f = { mes: "", marca: "", categoria: "", tipo: "", canal: "", giro: "", cadena: "", ...(ctx.filtros || {}) };
   let q = ctx.query || "";
   let limite = CONFIG.datos.tamanoPagina;
 
@@ -5492,6 +5497,7 @@ function Explorer(ctx) {
       if (f.tipo && a.tipo !== f.tipo) return false;
       if (f.canal && !a.canal.includes(f.canal)) return false;
       if (f.cadena && !(a.cadena || []).includes(f.cadena)) return false;
+      if (f.giro && !(a.giro || []).includes(f.giro)) return false;
       if (term) {
         const heno = [a.titulo, a.resumen, a.descripcion, a.marca, a.tipo, a.insight, a.sku, a.ubicacion, a.fuente]
           .join(" ").toLowerCase();
@@ -5531,11 +5537,29 @@ function Explorer(ctx) {
     barra.querySelectorAll("select").forEach(s => { s.value = ""; s.classList.remove("set"); s.dispatchEvent(new Event("radar:limpiar")); });
     actualizarLimpiar();
     actualizarCadena();
+    actualizarDependientes();
     ctx.setFiltros({}, "");
     pintar(true);
   }
 
   let selectorCadena = null;
+  let selectorMarca = null;
+  let selectorGiro = null;
+  function actualizarDependientes() {
+    if (selectorMarca) {
+      const marcas = [...new Set(V.actions.filter(a => !f.categoria || a.categoria === f.categoria).flatMap(a => window.RadarCatalogo.marcas(a.marca)))].sort((a,b) => a.localeCompare(b,'es'));
+      if (f.marca && !marcas.includes(f.marca)) f.marca = '';
+      selectorMarca.replaceChildren(h('option',{value:'',text:'Marca'}), ...marcas.map(m => h('option',{value:m,text:m})));
+      selectorMarca.value=f.marca; selectorMarca.classList.toggle('set',!!f.marca);
+    }
+    if (selectorGiro) {
+      const giros = [...new Set(V.actions.filter(a => !f.canal || a.canal.includes(f.canal)).flatMap(a => a.giro || []))].sort((a,b) => a.localeCompare(b,'es'));
+      if (f.giro && !giros.includes(f.giro)) f.giro = '';
+      selectorGiro.replaceChildren(h('option',{value:'',text:'Giro de negocio'}), ...giros.map(g => h('option',{value:g,text:g})));
+      selectorGiro.value=f.giro; selectorGiro.classList.toggle('set',!!f.giro);
+      selectorGiro.disabled = !giros.length;
+    }
+  }
   function actualizarCadena() {
     if (!selectorCadena) return;
     const disponibles = [...new Set(V.actions.filter(a => !f.canal || a.canal.includes(f.canal)).flatMap(a => a.cadena || []))].sort();
@@ -5555,6 +5579,7 @@ function Explorer(ctx) {
       onchange: e => {
         f[k] = e.target.value;
         if (k === "canal") actualizarCadena();
+        if (k === "canal" || k === "categoria") actualizarDependientes();
         e.target.classList.toggle("set", !!e.target.value);
         limite = CONFIG.datos.tamanoPagina;
         actualizarLimpiar();
@@ -5567,6 +5592,8 @@ function Explorer(ctx) {
     );
     sel.value = f[k] || "";
     if (k === "cadena") selectorCadena = sel;
+    if (k === "marca") selectorMarca = sel;
+    if (k === "giro") selectorGiro = sel;
     if (k !== 'tipo' && k !== 'categoria' && k !== 'canal') return h("div", { class: "select-wrap" }, sel);
     sel.hidden=true;sel.tabIndex=-1;sel.setAttribute('aria-hidden','true');
     const uid='filtro-'+k;
@@ -5638,10 +5665,11 @@ function Explorer(ctx) {
       ),
       h("div", { class: "filter-row" },
         selector("mes", "Mes", V.months.map(m => ({ v: m.key, l: `${m.label} ${m.year}` }))),
-        selector("marca", "Marca", [...new Set(V.actions.flatMap(a=>window.RadarCatalogo.marcas(a.marca)))].sort((a,b)=>a.localeCompare(b,"es"))),
         selector("categoria", "Mundo", V.categorias),
+        selector("marca", "Marca", [...new Set(V.actions.flatMap(a=>window.RadarCatalogo.marcas(a.marca)))].sort((a,b)=>a.localeCompare(b,"es"))),
         selector("tipo", "Tipo de acción", V.tipos),
         selector("canal", "Canal", V.canales),
+        selector("giro", "Giro de negocio", [...new Set(V.actions.flatMap(a => a.giro || []))].sort()),
         selector("cadena", "Cadena", [...new Set(V.actions.flatMap(a => a.cadena || []))].sort()),
         btnLimpiar,
         contador
@@ -5650,6 +5678,7 @@ function Explorer(ctx) {
   );
 
   actualizarCadena();
+  actualizarDependientes();
 
   const vista = h("div", { class: "view" }, barra, zonaResultados, h("div", { class: "shell centrado" }, btnMas));
 
@@ -6032,7 +6061,7 @@ function montarCaptura(ctx, alGuardar, opciones) {
   const campos = {};
   const otros = {};
   const acciones = (__M_ui.dataset() && __M_ui.dataset().actions) || [];
-  const propiedades = {'Marca':'marca','Grupo':'grupo','Categoría':'categoria','Subcategoría':'subcategoria','Tipo de acción':'tipo','Canal':'canal','Fuente':'fuente'};
+  const propiedades = {'Marca':'marca','Grupo':'grupo','Categoría':'categoria','Subcategoría':'subcategoria','Tipo de acción':'tipo','Canal':'canal','Giro de negocio':'giro','Fuente':'fuente'};
   const fondo = h('div',{class:'alta-fondo',hidden:true});
   let overflowAnterior='';let focoPrevio=null;
   const panel = pagina ? h('section', {class:'captura-pagina', id:'captura', 'aria-label':'Nueva acción'}) : h('section', {class:'captura-panel', id:'captura', 'aria-hidden':'true', 'aria-label':'Nueva acción',role:'dialog','aria-modal':'true'});
@@ -6049,8 +6078,8 @@ function montarCaptura(ctx, alGuardar, opciones) {
   const aviso = h('p',{class:'captura-nota',role:'status','aria-live':'polite'});
   const requeridos = new Set(['Marca','Categoría','Tipo de acción','Título','Fecha','Resumen']);
   const largos = new Set(['Descripción','Resumen','Insight']);
-  const limites = {'Marca':200,'Grupo':200,'Categoría':200,'Subcategoría':200,'Tipo de acción':200,'Título':500,'Fecha':10,'Resumen':3000,'Descripción':8000,'Insight':4000,'SKU involucrado':500,'Canal':500,'Ubicación':500,'Fuente':500,'Link de referencia':2000};
-  const nombres = ['Marca','Grupo','Categoría','Subcategoría','Tipo de acción','Título','Fecha','Canal','Ubicación','SKU involucrado','Descripción','Resumen','Insight','Fuente','Link de referencia'];
+  const limites = {'Marca':200,'Grupo':200,'Categoría':200,'Subcategoría':200,'Tipo de acción':200,'Título':500,'Fecha':10,'Resumen':3000,'Descripción':8000,'Insight':4000,'SKU involucrado':500,'Canal':500,'Giro de negocio':500,'Ubicación':500,'Fuente':500,'Link de referencia':2000};
+  const nombres = ['Marca','Grupo','Categoría','Subcategoría','Tipo de acción','Título','Fecha','Canal','Giro de negocio','Ubicación','SKU involucrado','Descripción','Resumen','Insight','Fuente','Link de referencia'];
   const grid = h('div',{class:'captura-grid'}, ...nombres.map(nombre=>{
     const id='alta-'+nombres.indexOf(nombre);
     const etiqueta=nombre==='Resumen'?'Hallazgo':nombre==='Insight'?'Insight / estrategia para Alicorp':nombre==='Categoría'?'Mundo':nombre;
@@ -6205,7 +6234,7 @@ function montarCaptura(ctx, alGuardar, opciones) {
     fotoLbl.classList.add('ancho');
     form.replaceChildren(
       sec('1','Marca y clasificación','Quién hizo la acción y en qué categoría compite.',['Marca','Grupo','Categoría','Subcategoría','Tipo de acción']),
-      sec('2','La acción','Qué se detectó, cuándo y en qué canal.',['Título','Fecha','Canal','Ubicación','SKU involucrado']),
+      sec('2','La acción','Qué se detectó, cuándo y en qué canal.',['Título','Fecha','Canal','Giro de negocio','Ubicación','SKU involucrado']),
       sec('3','Hallazgo e insight','Lo que pasó y qué significa para Alicorp.',['Resumen','Descripción','Insight']),
       sec('4','Fuente y evidencia','De dónde viene el dato y la foto de portada.',['Fuente','Link de referencia'],[fotoLbl]),
       aviso,
@@ -6342,7 +6371,7 @@ function aplicarHash() {
 
   estado.view = VISTAS.includes(primero) ? primero : "home";
   estado.filtros = {};
-  ["marca", "categoria", "tipo", "canal", "mes"].forEach(k => {
+  ["marca", "categoria", "tipo", "canal", "giro", "cadena", "mes"].forEach(k => {
     const v = params.get(k);
     if (v) estado.filtros[k] = v;
   });
@@ -6621,6 +6650,33 @@ return {  };
 
 })();
   </script>
+
+<script>
+// Medición aproximada: pestaña visible + actividad en el último minuto.
+(()=>{
+ let visita='',segundos=0,fichas=[],ultimo=Date.now(),tick=Date.now(),secuencia=0,enviando=false,cola=null;
+ const panel=document.createElement('dialog');panel.style.cssText='width:min(1100px,94vw);max-height:85vh;overflow:auto;border:1px solid #ddd;border-radius:20px;padding:24px;background:white;color:#172030;';document.body.append(panel);
+ const boton=document.createElement('button');boton.textContent='Estadísticas de uso';boton.className='btn';boton.style.cssText='position:fixed;bottom:84px;left:96px;z-index:90;';boton.hidden=true;document.body.append(boton);
+ function medir(){const ahora=Date.now();if(visita&&!document.hidden&&ahora-ultimo<60000)segundos+=Math.min((ahora-tick)/1000,5);tick=ahora;}
+ function actividad(){medir();ultimo=Date.now();}
+ ['pointerdown','keydown','scroll','pointermove'].forEach(t=>document.addEventListener(t,actividad,{passive:true}));
+ async function enviar(){if(!visita||enviando||!window.RadarAcceso.activa()||window.RadarFotos?.ocupada())return;medir();enviando=true;
+   if(!cola)cola={visita,secuencia:++secuencia,segundos:Math.floor(segundos),fichas:fichas.slice()};
+   const copia=cola;try{const r=await window.RadarAcceso.registrarUso(copia);if(r.ok&&cola===copia)cola=null;}catch(e){}finally{enviando=false;}}
+ function ficha(){if(!visita)return;const m=location.hash.match(/^#\/accion\/([^?]+)/);if(m){const id=decodeURIComponent(m[1]);if(fichas.length<1000)fichas.push(id);enviar();}}
+ window.addEventListener('radar:ingreso',async()=>{visita=crypto.randomUUID();segundos=0;fichas=[];secuencia=0;cola=null;ultimo=tick=Date.now();enviar();ficha();try{const d=await window.RadarAcceso.validar();boton.hidden=!d.puedeVerEstadisticas;}catch(e){}});
+ window.addEventListener('radar:salida',()=>{visita='';cola=null;boton.hidden=true;panel.close();});
+ window.addEventListener('hashchange',ficha);document.addEventListener('visibilitychange',()=>{medir();enviar();});
+ setInterval(medir,1000);setInterval(enviar,60000);
+ function el(t,txt){const n=document.createElement(t);n.textContent=txt;return n;}
+ boton.onclick=async()=>{panel.replaceChildren(el('h2','Estadísticas de uso'));const cerrar=el('button','Cerrar');cerrar.className='btn';cerrar.onclick=()=>panel.close();panel.append(cerrar,el('p','Cargando…'));panel.showModal();try{await enviar();const d=await window.RadarAcceso.estadisticas();if(!d.ok)throw Error(d.mensaje);
+ panel.lastChild.remove();panel.append(el('p',`${d.totalVisitas} visitas · ${d.usuarios} usuarios · ${d.minutos} minutos activos`),el('p','Una visita se cuenta por ingreso a esta pestaña. El tiempo es aproximado: se pausa al ocultarla o tras un minuto sin interacción. Puede perderse el último minuto al cerrar. Se muestran las últimas 500 visitas.'));
+ const a=el('a','Abrir registro completo');a.href=d.url;a.target='_blank';a.rel='noopener';panel.append(a);
+ const wrap=el('div','');wrap.style.overflowX='auto';const tabla=el('table','');tabla.style.cssText='width:100%;border-collapse:collapse;margin-top:20px;font-size:13px';const cab=el('tr','');['Usuario','Rol','Ingreso','Último registro','Tiempo activo','Fichas abiertas','IDs de fichas'].forEach(t=>cab.append(el('th',t)));tabla.append(cab);
+ d.visitas.forEach(v=>{const tr=el('tr','');[v.nombre+' ('+v.usuario+')',v.rol,new Date(v.ingreso).toLocaleString('es-PE'),new Date(v.ultimo).toLocaleString('es-PE'),Math.floor(v.segundos/60)+' min '+v.segundos%60+' s',v.fichas,v.ids].forEach(t=>{const td=el('td',String(t));td.style.cssText='padding:10px;border-bottom:1px solid #eee;max-width:260px;overflow-wrap:anywhere';tr.append(td);});tabla.append(tr);});wrap.append(tabla);panel.append(wrap);
+ }catch(e){panel.append(el('p',e.message));}};
+})();
+</script>
 
 </body>
 </html>
