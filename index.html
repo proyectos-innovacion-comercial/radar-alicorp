@@ -6070,7 +6070,7 @@ function montarCaptura(ctx, alGuardar, opciones) {
   const campos = {};
   const otros = {};
   const acciones = (__M_ui.dataset() && __M_ui.dataset().actions) || [];
-  const propiedades = {'Marca':'marca','Grupo':'grupo','Categoría':'categoria','Subcategoría':'subcategoria','Tipo de acción':'tipo','Canal':'canal','Giro de negocio':'giro','Fuente':'fuente'};
+  const propiedades = {'Marca':'marca','Grupo':'grupo','Categoría':'categoria','Subcategoría':'subcategoria','Tipo de acción':'tipo','Canal':'canal','Cadena':'cadena','Giro de negocio':'giro','Fuente':'fuente'};
   const fondo = h('div',{class:'alta-fondo',hidden:true});
   let overflowAnterior='';let focoPrevio=null;
   const panel = pagina ? h('section', {class:'captura-pagina', id:'captura', 'aria-label':'Nueva acción'}) : h('section', {class:'captura-panel', id:'captura', 'aria-hidden':'true', 'aria-label':'Nueva acción',role:'dialog','aria-modal':'true'});
@@ -6087,8 +6087,8 @@ function montarCaptura(ctx, alGuardar, opciones) {
   const aviso = h('p',{class:'captura-nota',role:'status','aria-live':'polite'});
   const requeridos = new Set(['Marca','Categoría','Tipo de acción','Título','Fecha','Resumen']);
   const largos = new Set(['Descripción','Resumen','Insight']);
-  const limites = {'Marca':200,'Grupo':200,'Categoría':200,'Subcategoría':200,'Tipo de acción':200,'Título':500,'Fecha':10,'Resumen':3000,'Descripción':8000,'Insight':4000,'SKU involucrado':500,'Canal':500,'Giro de negocio':500,'Ubicación':500,'Fuente':500,'Link de referencia':2000};
-  const nombres = ['Marca','Grupo','Categoría','Subcategoría','Tipo de acción','Título','Fecha','Canal','Giro de negocio','Ubicación','SKU involucrado','Descripción','Resumen','Insight','Fuente','Link de referencia'];
+  const limites = {'Marca':200,'Grupo':200,'Categoría':200,'Subcategoría':200,'Tipo de acción':200,'Título':500,'Fecha':10,'Resumen':3000,'Descripción':8000,'Insight':4000,'SKU involucrado':500,'Canal':500,'Cadena':500,'Giro de negocio':500,'Ubicación':500,'Fuente':500,'Link de referencia':2000};
+  const nombres = ['Marca','Grupo','Categoría','Subcategoría','Tipo de acción','Título','Fecha','Canal','Cadena','Giro de negocio','Ubicación','SKU involucrado','Descripción','Resumen','Insight','Fuente','Link de referencia'];
   const grid = h('div',{class:'captura-grid'}, ...nombres.map(nombre=>{
     const id='alta-'+nombres.indexOf(nombre);
     const etiqueta=nombre==='Resumen'?'Hallazgo':nombre==='Insight'?'Insight / estrategia para Alicorp':nombre==='Categoría'?'Mundo':nombre;
@@ -6096,7 +6096,7 @@ function montarCaptura(ctx, alGuardar, opciones) {
     let otro=null;
     if(propiedades[nombre]){
       const opciones=[...new Set(acciones.flatMap(a=>Array.isArray(a[propiedades[nombre]])?a[propiedades[nombre]]:[a[propiedades[nombre]]]).map(v=>String(v||'').trim()).filter(v=>v&&v!=='—'))].sort((a,b)=>a.localeCompare(b,'es'));
-      const catalogo=nombre==='Categoría'?window.RadarCatalogo.categorias:nombre==='Tipo de acción'?window.RadarCatalogo.tipos:null;
+      const catalogo=nombre==='Categoría'?window.RadarCatalogo.categorias:nombre==='Tipo de acción'?window.RadarCatalogo.tipos:nombre==='Cadena'?['Wong','Metro','Plaza Vea','Tottus','OXXO','Tambo','Mass']:null;
       control=h('select',{id,name:nombre},h('option',{value:'',text:'Selecciona una opción'}),...(catalogo||opciones).map(v=>h('option',{value:v,text:v})),catalogo?null:h('option',{value:'__OTRA__',text:'Otra opción…'}));
       otro=h('input',{type:'text',maxlength:limites[nombre],placeholder:'Escribe la nueva opción','aria-label':'Otra opción para '+etiqueta,hidden:true});
       otros[nombre]=otro;
@@ -6155,16 +6155,16 @@ function montarCaptura(ctx, alGuardar, opciones) {
   const confirmar=h('button',{type:'button',class:'btn',text:'Confirmar carga',disabled:true});
   let filasLote=[];
   const plantilla=h('button',{type:'button',class:'btn',text:'Descargar plantilla Excel',onclick:()=>{
-    const ws=XLSX.utils.aoa_to_sheet([nombres]);ws['!cols']=nombres.map(()=>({wch:24}));
+    const ws=XLSX.utils.aoa_to_sheet([nombres.map(n=>n==='Categoría'?'Mundo':n)]);ws['!cols']=nombres.map(()=>({wch:24}));
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Acciones');
     const cats=window.RadarCatalogo.categorias,tipos=window.RadarCatalogo.tipos;
-    const catalogo=XLSX.utils.aoa_to_sheet([['Categoría','Tipo de acción'],...Array.from({length:Math.max(cats.length,tipos.length)},(_,i)=>[cats[i]||'',tipos[i]||''])]);catalogo['!cols']=[{wch:22},{wch:42}];
+    const catalogo=XLSX.utils.aoa_to_sheet([['Mundo','Tipo de acción'],...Array.from({length:Math.max(cats.length,tipos.length)},(_,i)=>[cats[i]||'',tipos[i]||''])]);catalogo['!cols']=[{wch:22},{wch:42}];
     XLSX.utils.book_append_sheet(wb,catalogo,'Catálogo');XLSX.writeFile(wb,'Plantilla_Radar_Alicorp.xlsx');
   }});
   function pintarLote(){
     tabla.replaceChildren(h('table',{style:{width:'100%',borderCollapse:'collapse',fontSize:'13px'}},
-      h('thead',{},h('tr',{},...['Fila','Título','Marca','Categoría','Tipo de acción','Fecha','Resultado'].map(t=>h('th',{text:t,style:{textAlign:'left',padding:'10px'}})))),
-      h('tbody',{},...filasLote.map(r=>h('tr',{},...[r.numero,r.campos['Título'],r.campos.Marca,r.campos['Categoría'],r.campos['Tipo de acción'],r.campos.Fecha,r.id?'Guardada: '+r.id:r.error||'Lista para cargar'].map(t=>h('td',{text:String(t||''),style:{padding:'10px',borderBottom:'1px solid var(--line)',maxWidth:'220px',overflowWrap:'anywhere'}})))))));
+      h('thead',{},h('tr',{},...['Fila','Título','Marca','Mundo','Tipo de acción','Canal','Cadena','Giro de negocio','Fecha','Resultado'].map(t=>h('th',{text:t,style:{textAlign:'left',padding:'10px'}})))),
+      h('tbody',{},...filasLote.map(r=>h('tr',{},...[r.numero,r.campos['Título'],r.campos.Marca,r.campos['Categoría'],r.campos['Tipo de acción'],r.campos.Canal,r.campos.Cadena,r.campos['Giro de negocio'],r.campos.Fecha,r.id?'Guardada: '+r.id:r.error||'Lista para cargar'].map(t=>h('td',{text:String(t||''),style:{padding:'10px',borderBottom:'1px solid var(--line)',maxWidth:'220px',overflowWrap:'anywhere'}})))))));
   }
   archivo.addEventListener('change',async()=>{
     confirmar.disabled=true;filasLote=[];tabla.replaceChildren();
@@ -6174,9 +6174,9 @@ function montarCaptura(ctx, alGuardar, opciones) {
       const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:false});
       if(!wb.Sheets.Acciones)throw new Error('Usa la plantilla: debe contener la hoja Acciones.');
       const matriz=XLSX.utils.sheet_to_json(wb.Sheets.Acciones,{header:1,defval:'',raw:true});
-      const encabezados=(matriz.shift()||[]).map(v=>String(v).trim());
+      const encabezados=(matriz.shift()||[]).map(v=>String(v).trim()).map(n=>n==='Mundo'?'Categoría':n);
       if(new Set(encabezados).size!==encabezados.length)throw new Error('Hay encabezados repetidos.');
-      nombres.forEach(n=>{if(!encabezados.includes(n))throw new Error('Falta la columna '+n+'.');});
+      nombres.filter(n=>n!=='Cadena').forEach(n=>{if(!encabezados.includes(n))throw new Error('Falta la columna '+(n==='Categoría'?'Mundo':n)+'.');});
       matriz.forEach((valores,i)=>{
         if(!valores.some(v=>String(v).trim()))return;
         const datos={};nombres.forEach(n=>{
@@ -6184,7 +6184,7 @@ function montarCaptura(ctx, alGuardar, opciones) {
           if(n==='Fecha'&&typeof valor==='number'){const d=XLSX.SSF.parse_date_code(valor);valor=d?String(d.y).padStart(4,'0')+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0'):'';}
           datos[n]=String(valor==null?'':valor).trim();
         });
-        const errores=window.RadarCatalogo.validar(datos);nombres.forEach(n=>{if(requeridos.has(n)&&!datos[n])errores.push('Falta '+n);if(datos[n].length>limites[n])errores.push(n+' demasiado largo');});
+        const errores=window.RadarCatalogo.validar(datos);nombres.forEach(n=>{if(requeridos.has(n)&&!datos[n])errores.push('Falta '+(n==='Categoría'?'Mundo':n));if(datos[n].length>limites[n])errores.push(n+' demasiado largo');});
         const fecha=datos.Fecha;if(!/^\d{4}-\d{2}-\d{2}$/.test(fecha)||!Number.isFinite(Date.parse(fecha))||new Date(fecha).toISOString().slice(0,10)!==fecha)errores.push('Fecha inválida: usa AAAA-MM-DD');
         if(datos['Link de referencia']&&!/^https?:\/\/\S+$/i.test(datos['Link de referencia']))errores.push('Enlace inválido');
         filasLote.push({numero:i+2,campos:datos,solicitudId:crypto.randomUUID(),error:errores.join(' · '),id:null});
@@ -6243,7 +6243,7 @@ function montarCaptura(ctx, alGuardar, opciones) {
     fotoLbl.classList.add('ancho');
     form.replaceChildren(
       sec('1','Marca y clasificación','Quién hizo la acción y en qué categoría compite.',['Marca','Grupo','Categoría','Subcategoría','Tipo de acción']),
-      sec('2','La acción','Qué se detectó, cuándo y en qué canal.',['Título','Fecha','Canal','Giro de negocio','Ubicación','SKU involucrado']),
+      sec('2','La acción','Qué se detectó, cuándo y en qué canal.',['Título','Fecha','Canal','Cadena','Giro de negocio','Ubicación','SKU involucrado']),
       sec('3','Hallazgo e insight','Lo que pasó y qué significa para Alicorp.',['Resumen','Descripción','Insight']),
       sec('4','Fuente y evidencia','De dónde viene el dato y la foto de portada.',['Fuente','Link de referencia'],[fotoLbl]),
       aviso,
